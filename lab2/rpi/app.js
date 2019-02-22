@@ -39,7 +39,7 @@ function getSensorData(){
 
     //get temperature
     var temperature = data.temperature;
-    //console.log(temperature); 
+    console.log("Temperature: " + temperature); 
 
     //get pressure (thought we needed this, but we didn't)
     //var pressure = data.pressure;
@@ -47,7 +47,7 @@ function getSensorData(){
 
     //get humidity
     var humidity = data.humidity;
-    //console.log(humidity);   
+    console.log("Humidity: " + humidity);   
 	
 	console.log("data gathered, uploading to database...");
 	uploadSensorData(temperature, humidity);
