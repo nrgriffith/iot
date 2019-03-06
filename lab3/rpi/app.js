@@ -1,3 +1,22 @@
+
+// change me if needed
+// station 7: fa:20:cd:78:e4:bf
+// station 1: f3:4d:10:12:08:a3
+var address = 'fa:20:cd:78:e4:bf';
+
+// Enable noble
+var noble = require('noble');
+// Chewck if BLE adapter is powered on
+noble.on('stateChange', function(state) 
+{
+  if(state === 'poweredOn') 
+  {
+    console.log('Powered on!');
+    noble.startScanning();
+  }
+});
+
+// firebase stuff
 var firebase = require('firebase/app');
 require('firebase/database');
 var nodeimu = require('nodeimu');
@@ -7,23 +26,111 @@ var sense = require('sense-hat-led');
 //config values were obtained directly from the website that stores our database
 //https://console.firebase.google.com/project/iot-lab2-c1bfa/overview
 var config = {
-    apiKey: "AIzaSyDeXPowwDP1M02vsDZkkeLDMfU1_t6SrEs", 	//apikey
-    authDomain: "iot-lab2-c1bfa.firebaseapp.com",	//id
-    databaseURL: "https://iot-lab2-c1bfa.firebaseio.com",
-    projectId: "iot-lab2-c1bfa",
-    storageBucket: "iot-lab2-c1bfa.appspot.com",
-    messagingSenderId: "319629914250"
+    apiKey: "AIzaSyAcfu270WqHvKgClqaZ9qkgVRHk59i2qyY",
+    authDomain: "k2-iot-lab3.firebaseapp.com",
+    databaseURL: "https://k2-iot-lab3.firebaseio.com",
+    projectId: "k2-iot-lab3",
+    storageBucket: "k2-iot-lab3.appspot.com",
+    messagingSenderId: "911922504776"
 };
-
 firebase.initializeApp(config);
 
 // Get a reference to the database service
 var database = firebase.database();
 
+//Register function to receive newly discovered devices
+noble.on('discover', function(device) 
+{
+  if(device.address === address) 
+  {
+    console.log('Found device: ' + device.address);
+
+    //found our device, now connect to it
+    //Be sure to turn off scanning before connecting
+    noble.stopScanning();
+
+    device.connect(function(error) 
+    {
+      // Once connected, we need to kick off service discovery
+      device.discoverAllServicesAndCharacteristics(function(error, services, characteristics) 
+      {
+
+        //Discovery done! Find characteristics we care about
+        var uartTx = null;
+        var uartRx = null;
+
+        //look for UART service characteristic
+        characteristics.forEach(function(ch, chID) 
+        {
+          if (ch.uuid === '6e400002b5a3f393e0a9e50e24dcca9e') 
+          {
+            uartTx = ch;
+            console.log("Found UART Tx characteristic");
+          }
+
+          if (ch.uuid === '6e400003b5a3f393e0a9e50e24dcca9e') 
+          {
+            uartRx = ch;
+            console.log("Found UART Rx characteristic");
+          }
+
+        });
+
+        //Check if we found UART Tx characteristic
+        if (!uartTx) 
+        {
+          console.log('Failed to find UART Tx Characteristic! ');
+          process.exit();
+        }
+
+        //Check if we found UART Rx characteristic
+        if (!uartRx) 
+        {
+          console.log('Failed to find UART Rx Characteristic! ');
+          process.exit();
+        }
+
+        //set up listener for console input
+        //when console input is received, send it to uartTx
+        var stdin = process.openStdin();
+
+        stdin.addListener("data", function (d) 
+        {
+          // d will have a linefeed at the end.  Get rid ofit with trim
+          var inStr = d.toString().trim();
+          //Can only send 20 bytes in a Bluetooth LE packet
+          //so truncate string if it is too long
+          if (inStr.length > 20) 
+          {
+            inStr = inStr.slice(0, 19);
+          }
+
+          console.log("Sent: " + inStr);
+          uartTx.write(new Buffer(inStr));
+        });
+
+        // Now set up listener to receive data from uartRx
+        //and display on console
+        uartRx.notify(true);
+
+        uartRx.on('read', function(data, isNotification) 
+        {
+          console.log ("Received: " + data.toString());
+        });
+
+      });  //end of device.discover
+
+    });   //end of device.connect
+
+  }      //end of if (device.address...
+  
+});     //end of noble.on
+
 //setInterval the function getSensorData is called (in milliseconds)
-setInterval(getSensorData, 60000);
+//setInterval(getSensorData, 60000);
+
 //set updateLight function to be called everytime the value of update_lght is changed
-database.ref().child('update_light').on('value', function(snapshot){updateLight(snapshot);});
+database.ref().child('Update').on('value', function(snapshot){updateLight(snapshot);});
 
 //global variable used to update database
 var updates = {};
@@ -38,7 +145,7 @@ function getSensorData(){
     var data = IMU.getValueSync();
 
     //get temperature
-    var temperature = data.temperature;
+    var temperature = data.Temperature;
     console.log("Temperature: " + temperature); 
 
     //get pressure (thought we needed this, but we didn't)
@@ -46,7 +153,7 @@ function getSensorData(){
     //console.log(pressure);
 
     //get humidity
-    var humidity = data.humidity;
+    var humidity = data.Humidity;
     console.log("Humidity: " + humidity);   
 	
 	console.log("data gathered, uploading to database...");
@@ -71,15 +178,15 @@ function updateLight(snapshot){
 		//.once reads the value one time instead of everytime the value is changed
 		database.ref().child('/').once('value', 
 			function(data){
-				console.log("Changing light in row: %s col: %s...", data.val().light_row, data.val().light_column);
+				console.log("Changing light in row: %s col: %s...", data.val().Light_Row, data.val().Light_Col);
 				
 				//set light to value reflected in the database
 				sense.setPixel(
-				data.val().light_column,
-				data.val().light_row,
-				data.val().light_r,
-				data.val().light_g,
-				data.val().light_b)
+				data.val().Light_Col,
+				data.val().Light_Row,
+				data.val().Light_R,
+				data.val().Light_G,
+				data.val().Light_B)
 
 				console.log("light set\n");
 
