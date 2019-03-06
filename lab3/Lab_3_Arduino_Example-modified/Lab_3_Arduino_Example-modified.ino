@@ -142,7 +142,25 @@ void setup(void)
 
 void loop(void)
 {
-  /*
+/*
+    // Check for user input
+  char inputs[BUFSIZE+1];
+
+  if ( getUserInput(inputs, BUFSIZE) )
+  {
+    // Send characters to Bluefruit
+    Serial.print("[Send] ");
+    Serial.println(inputs);
+
+    ble.print("AT+BLEUARTTX=");
+    ble.println(inputs);
+
+    // check response stastus
+    if (! ble.waitForOK() ) {
+      Serial.println(F("Failed to send?"));
+    }
+  }
+  */
   // read the temperature
   int reading = analogRead(sensorPin);
   float voltage = reading * 5.0;
@@ -154,15 +172,11 @@ void loop(void)
                                                //to degrees ((voltage - 500mV) times 100)
   Serial.print(temperatureC); Serial.println(" degrees C");
  
-  // now convert to Fahrenheit
-  float temperatureF = (temperatureC * 9.0 / 5.0) + 32.0;
-  tempReadings[storageCount] = temperatureF;
-  */
   //Get randomized temperature
-  float temp = random(0, 60) / 2.5 * 100;
-  int tempInt = (int)temp;
-  Serial.println("Int: ");
-  Serial.println(tempInt);
+  //float temp = random(0, 60) / 2.5 * 100;
+  //int tempInt = (int)temp;
+  //Serial.println("Int: ");
+  //Serial.println(tempInt);
   
   //convert temperature to bytes (it was multiplied by 100 when it was harvested)
   byte tempBytes[2];
@@ -190,4 +204,25 @@ void loop(void)
 
   delay(1000);
 }
+/*
+bool getUserInput(char buffer[], uint8_t maxSize)
+{
+  // timeout in 100 milliseconds
+  TimeoutTimer timeout(100);
 
+  memset(buffer, 0, maxSize);
+  while( (!Serial.available()) && !timeout.expired() ) { delay(1); }
+
+  if ( timeout.expired() ) return false;
+
+  delay(2);
+  uint8_t count=0;
+  do
+  {
+    count += Serial.readBytes(buffer+count, maxSize);
+    delay(2);
+  } while( (count < maxSize) && (Serial.available()) );
+
+  return true;
+}
+*/
