@@ -42,10 +42,12 @@ firebase.initializeApp(config);
 var database = firebase.database();
 
 //set updateLight function to be called everytime the value of update_lght is changed
-database.ref().child('Update').on('value', function(snapshot){updateLight(snapshot);});
+//database.ref().child('Update').on('value', function(snapshot){updateLight(snapshot);});
 
 //set updateInterval function to be called everytime the value of Interval is changed
-database.ref().child('Interval').on('value', function(snapshot){updateInterval(snapshot);});
+//database.ref().child('Interval').on('value', function(snapshot){updateInterval(snapshot);});
+
+//getSensorData();
 
 
 //Register function to receive newly discovered devices
@@ -127,14 +129,14 @@ var updates = {};
 sense.clear();
 
 console.log("\n");
-/*
+
 function getSensorData(){
     
     //get all sensor data
-    var data = IMU.getValueSync();
+    var hatData = IMU.getValueSync();
 
     //get temperature
-    var temperature = data.Temperature;
+    var temperature = hatData.temperature;
     console.log("Temperature: " + temperature); 
 
     //get pressure (thought we needed this, but we didn't)
@@ -142,37 +144,40 @@ function getSensorData(){
     //console.log(pressure);
 
     //get humidity
-    var humidity = data.Humidity;
+    var humidity = hatData.humidity;
     console.log("Humidity: " + humidity);   
 	
 	console.log("data gathered, uploading to database...");
 	uploadSensorData(temperature, humidity);
 }
-*/
 
+/*
 function uploadSensorData(temperature, humidity){
+
 	//edit updates variable to read in values
-	updates['/temperature'] = temperature;
-	updates['/humidity'] = humidity;	
+	updates['/Temperature'] = temperature;
+	updates['/Humidity'] = humidity;	
 	
 	//update database
     database.ref().update(updates);
 
+        database.ref('/Temperature').set(temperature);
 	console.log("data uploaded successfully\n");
 }
-
+*/
+/*
 // function is called when Interval changes
 function updateInterval(snapshot){
 	if(snapshot.val() != storedInterval){
-		var d = data.val().Interval;
+		var d = parseInt(snapshot.val());
 		if(!(d < 10 && d > 1)) // valid values are from 1 - 10, so if it goes invalid, just use the last interval
 		{
 			d = storedInterval;
 		}
 		//.once reads the value one time instead of everytime the value is changed
 		database.ref().child('/').once('value', 
-			function(data){
-				console.log("Changing the interval to %s seconds.", data.val().Interval);
+			function(d){
+				console.log("Changing the interval to %d", d);
 				
 				var inStr = d.toString().trim();
 				
@@ -195,7 +200,9 @@ function updateInterval(snapshot){
 			}
 		);
 	}
-
+}
+*/
+/*
 //function is called when Update_Light changes
 function updateLight(snapshot){
 	if(snapshot.val() == true){
@@ -224,3 +231,4 @@ function updateLight(snapshot){
 	}
 }
 
+*/
