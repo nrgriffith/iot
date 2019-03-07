@@ -1,3 +1,5 @@
+var myAddress = 'f3:4d:10:12:08:a3'; // station 1
+
 var noble = require('noble');
 
 // Chewck if BLE adapter is powered on
@@ -13,7 +15,7 @@ noble.on('stateChange', function(state)
 //Register function to receive newly discovered devices
 noble.on('discover', function(device) 
 {
-  if(device.address === 'e4:55:57:93:cd:14') 
+  if(device.address === myAddress) 
   {
     console.log('Found device: ' + device.address);
 
