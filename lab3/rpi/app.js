@@ -1,11 +1,10 @@
 
 // change me if needed
-// station 7: fa:20:cd:78:e4:bf
-// station 1: f3:4d:10:12:08:a3
-var address = 'fa:20:cd:78:e4:bf';
+var myAddress = 'fa:20:cd:78:e4:bf'; // station 7
+var myAddress = 'f3:4d:10:12:08:a3'; // station 1
 
 // variables for code
-var storedInterval = 0;
+var storedInterval = 10;
 
 // Enable noble
 var noble = require('noble');
@@ -53,7 +52,7 @@ var database = firebase.database();
 //Register function to receive newly discovered devices
 noble.on('discover', function(device) 
 {
-  if(device.address === address) 
+  if(device.address === myAddress) 
   {
     console.log('Found device: ' + device.address);
 
@@ -102,13 +101,32 @@ noble.on('discover', function(device)
           process.exit();
         }
 
-        // Set up listener to receive data from uartRx and display on console
+        //set up listener for console input
+        //when console input is received, send it to uartTx
+        var stdin = process.openStdin();
+
+        stdin.addListener("data", function (d) 
+        {
+          // d will have a linefeed at the end.  Get rid ofit with trim
+          var inStr = d.toString().trim();
+          //Can only send 20 bytes in a Bluetooth LE packet
+          //so truncate string if it is too long
+          if (inStr.length > 20) 
+          {
+            inStr = inStr.slice(0, 19);
+          }
+
+          console.log("Sent: " + inStr);
+          uartTx.write(new Buffer(inStr));
+        });
+
+        // Now set up listener to receive data from uartRx
+        //and display on console
         uartRx.notify(true);
 
-        uartRx.on('read', function(recData, isNotification) 
+        uartRx.on('read', function(data, isNotification) 
         {
-          console.log ("Received: " + recData.toString());
-		  
+          console.log ("Received: " + data.toString());
         });
 
       });  //end of device.discover
@@ -117,7 +135,7 @@ noble.on('discover', function(device)
 
   }      //end of if (device.address...
   
-});     //end of noble.on
+});     //end of noble.on   
 
 //setInterval the function getSensorData is called (in milliseconds)
 //setInterval(getSensorData, 60000);
@@ -129,7 +147,7 @@ var updates = {};
 sense.clear();
 
 console.log("\n");
-
+/*
 function getSensorData(){
     
     //get all sensor data
@@ -150,7 +168,7 @@ function getSensorData(){
 	console.log("data gathered, uploading to database...");
 	uploadSensorData(temperature, humidity);
 }
-
+*/
 /*
 function uploadSensorData(temperature, humidity){
 
