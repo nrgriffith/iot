@@ -186,7 +186,11 @@ void loop(void)
   //byte tempBytes[2];
   
   //Serial.println(temp/100.0);
+ 
   gatt.setChar(etsMeasureCharId, tempBytes, 2); //Send the temperature over Bluetooth
+ 
+  ble.print("AT+BLEUARTTX=");
+  ble.println(tempInt);
   
   // Check for incoming characters from Bluefruit
   ble.println("AT+BLEUARTRX");
@@ -202,7 +206,7 @@ void loop(void)
     Serial.println(ble.buffer);
   }
 
-  delay(1000);
+  delay(10000);
 }
 
 bool getUserInput(char buffer[], uint8_t maxSize)

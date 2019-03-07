@@ -1,12 +1,3 @@
-#include <Adafruit_ATParser.h>
-#include <Adafruit_BLE.h>
-#include <Adafruit_BLEBattery.h>
-#include <Adafruit_BLEEddystone.h>
-#include <Adafruit_BLEGatt.h>
-#include <Adafruit_BLEMIDI.h>
-#include <Adafruit_BluefruitLE_SPI.h>
-#include <Adafruit_BluefruitLE_UART.h>
-
 /*********************************************************************
  This is an example for our nRF51822 based Bluefruit LE modules
 
@@ -53,10 +44,6 @@ void error(const __FlashStringHelper*err)
 
 int32_t etsServiceId;
 int32_t etsMeasureCharId;
-
-int sensorPin = 0; //the analog pin the TMP36's Vout (sense) pin is connected to
-                        //the resolution is 10 mV / degree centigrade with a
-                        //500 mV offset to allow for negative temperatures
 
 /**************************************************************************/
 /*!
@@ -142,38 +129,22 @@ void setup(void)
 
 void loop(void)
 {
-  /*
-  // read the temperature
-  int reading = analogRead(sensorPin);
-  float voltage = reading * 5.0;
-  voltage /= 1024.0;
-  // print out the voltage
-  Serial.print(voltage); Serial.println(" volts");
-  // now print out the temperature
-  float temperatureC = (voltage - 0.5) * 100 ;  //converting from 10 mv per degree wit 500 mV offset
-                                               //to degrees ((voltage - 500mV) times 100)
-  Serial.print(temperatureC); Serial.println(" degrees C");
- 
-  // now convert to Fahrenheit
-  float temperatureF = (temperatureC * 9.0 / 5.0) + 32.0;
-  tempReadings[storageCount] = temperatureF;
-  */
   //Get randomized temperature
   float temp = random(0, 60) / 2.5 * 100;
   int tempInt = (int)temp;
-  Serial.println("Int: ");
-  Serial.println(tempInt);
-  
+
   //convert temperature to bytes (it was multiplied by 100 when it was harvested)
   byte tempBytes[2];
   tempBytes[1] = tempInt >> 8;
   tempBytes[0] = tempInt;
-  Serial.println(tempBytes[0]);
-  //byte tempBytes[2];
-  
-  //Serial.println(temp/100.0);
+
+  Serial.println(temp/100.0);
   gatt.setChar(etsMeasureCharId, tempBytes, 2); //Send the temperature over Bluetooth
-  
+
+  // modification
+  ble.print("AT+BLEUARTTX=");
+  ble.println(tempInt);
+
   // Check for incoming characters from Bluefruit
   ble.println("AT+BLEUARTRX");
   ble.readline();
@@ -190,4 +161,3 @@ void loop(void)
 
   delay(1000);
 }
-
