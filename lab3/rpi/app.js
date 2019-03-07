@@ -4,6 +4,9 @@
 // station 1: f3:4d:10:12:08:a3
 var address = 'fa:20:cd:78:e4:bf';
 
+// variables for code
+var storedInterval = 0;
+
 // Enable noble
 var noble = require('noble');
 // Chewck if BLE adapter is powered on
@@ -37,6 +40,13 @@ firebase.initializeApp(config);
 
 // Get a reference to the database service
 var database = firebase.database();
+
+//set updateLight function to be called everytime the value of update_lght is changed
+database.ref().child('Update').on('value', function(snapshot){updateLight(snapshot);});
+
+//set updateInterval function to be called everytime the value of Interval is changed
+database.ref().child('Interval').on('value', function(snapshot){updateInterval(snapshot);});
+
 
 //Register function to receive newly discovered devices
 noble.on('discover', function(device) 
@@ -90,32 +100,13 @@ noble.on('discover', function(device)
           process.exit();
         }
 
-        //set up listener for console input
-        //when console input is received, send it to uartTx
-        var stdin = process.openStdin();
-
-        stdin.addListener("data", function (d) 
-        {
-          // d will have a linefeed at the end.  Get rid ofit with trim
-          var inStr = d.toString().trim();
-          //Can only send 20 bytes in a Bluetooth LE packet
-          //so truncate string if it is too long
-          if (inStr.length > 20) 
-          {
-            inStr = inStr.slice(0, 19);
-          }
-
-          console.log("Sent: " + inStr);
-          uartTx.write(new Buffer(inStr));
-        });
-
-        // Now set up listener to receive data from uartRx
-        //and display on console
+        // Set up listener to receive data from uartRx and display on console
         uartRx.notify(true);
 
-        uartRx.on('read', function(data, isNotification) 
+        uartRx.on('read', function(recData, isNotification) 
         {
-          console.log ("Received: " + data.toString());
+          console.log ("Received: " + recData.toString());
+		  
         });
 
       });  //end of device.discover
@@ -129,8 +120,6 @@ noble.on('discover', function(device)
 //setInterval the function getSensorData is called (in milliseconds)
 //setInterval(getSensorData, 60000);
 
-//set updateLight function to be called everytime the value of update_lght is changed
-database.ref().child('Update').on('value', function(snapshot){updateLight(snapshot);});
 
 //global variable used to update database
 var updates = {};
@@ -138,7 +127,7 @@ var updates = {};
 sense.clear();
 
 console.log("\n");
-
+/*
 function getSensorData(){
     
     //get all sensor data
@@ -159,7 +148,7 @@ function getSensorData(){
 	console.log("data gathered, uploading to database...");
 	uploadSensorData(temperature, humidity);
 }
-
+*/
 
 function uploadSensorData(temperature, humidity){
 	//edit updates variable to read in values
@@ -172,7 +161,42 @@ function uploadSensorData(temperature, humidity){
 	console.log("data uploaded successfully\n");
 }
 
-//function is called when update_light changes
+// function is called when Interval changes
+function updateInterval(snapshot){
+	if(snapshot.val() != storedInterval){
+		var d = data.val().Interval;
+		if(!(d < 10 && d > 1)) // valid values are from 1 - 10, so if it goes invalid, just use the last interval
+		{
+			d = storedInterval;
+		}
+		//.once reads the value one time instead of everytime the value is changed
+		database.ref().child('/').once('value', 
+			function(data){
+				console.log("Changing the interval to %s seconds.", data.val().Interval);
+				
+				var inStr = d.toString().trim();
+				
+				//Can only send 20 bytes in a Bluetooth LE packet
+				//so truncate string if it is too long
+				if (inStr.length > 20) 
+				{
+					inStr = inStr.slice(0, 19);
+				}
+
+				uartTx.write(new Buffer(inStr));
+
+				console.log("Sent: " + inStr);
+
+				//this code would set update_light to false again which was used when testing
+				//console.log("setting update_light to false...");
+				//updates['/update_light'] = false;
+				//database.ref().update(updates);
+				//console.log("done\n");
+			}
+		);
+	}
+
+//function is called when Update_Light changes
 function updateLight(snapshot){
 	if(snapshot.val() == true){
 		//.once reads the value one time instead of everytime the value is changed
