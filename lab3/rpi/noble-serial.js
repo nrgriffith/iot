@@ -1,4 +1,8 @@
 var myAddress = 'f3:4d:10:12:08:a3'; // station 1
+//var myAddress = 'DC:B0:90:BC:5F:73'  // station ?
+//var myAddress = 'F4:D9:23:8E:84:C1' //station ?
+//var myAddress = 'E4:55:57:93:CD:14' //station 3
+//var myAddress = '' //station 3
 
 var noble = require('noble');
 

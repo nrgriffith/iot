@@ -1,7 +1,7 @@
-
 // change me if needed
-var myAddress = 'fa:20:cd:78:e4:bf'; // station 7
+//var myAddress = 'fa:20:cd:78:e4:bf'; // station 7
 var myAddress = 'f3:4d:10:12:08:a3'; // station 1
+//var myAddress = 'DC:B0:90:BC:5F:73';   // station 3
 
 // variables for code
 var storedInterval = 10;
@@ -41,13 +41,17 @@ firebase.initializeApp(config);
 var database = firebase.database();
 
 //set updateLight function to be called everytime the value of update_lght is changed
-//database.ref().child('Update').on('value', function(snapshot){updateLight(snapshot);});
+database.ref().child('Update').on('value', function(snapshot){updateLight(snapshot);});
 
 //set updateInterval function to be called everytime the value of Interval is changed
-//database.ref().child('Interval').on('value', function(snapshot){updateInterval(snapshot);});
+database.ref().child('Interval').on('value', function(snapshot){updateInterval(snapshot);});
 
-//getSensorData();
+//getSensorData
 
+//bluetooth variables
+var uartTx = null;
+var uartRx = null;
+var connected = false;
 
 //Register function to receive newly discovered devices
 noble.on('discover', function(device) 
@@ -65,10 +69,10 @@ noble.on('discover', function(device)
       // Once connected, we need to kick off service discovery
       device.discoverAllServicesAndCharacteristics(function(error, services, characteristics) 
       {
-
         //Discovery done! Find characteristics we care about
-        var uartTx = null;
-        var uartRx = null;
+		//uartTx and uartRx are decared above before this function runs
+		uartTx = null;
+		uartRx = null;        
 
         //look for UART service characteristic
         characteristics.forEach(function(ch, chID) 
@@ -83,6 +87,7 @@ noble.on('discover', function(device)
           {
             uartRx = ch;
             console.log("Found UART Rx characteristic");
+			connected = true;
           }
 
         });
@@ -126,7 +131,11 @@ noble.on('discover', function(device)
 
         uartRx.on('read', function(data, isNotification) 
         {
-          console.log ("Received: " + data.toString());
+          console.log ("Received Temperature: " + data.toString());
+		  //console.log("Uploading data to firebase...");
+		  //updates['/Temperature'] = parseFloat(data.toString());
+	      //database.ref().update(updates);
+		  getSensorData(parseFloat(data.toString()));			
         });
 
       });  //end of device.discover
@@ -134,7 +143,6 @@ noble.on('discover', function(device)
     });   //end of device.connect
 
   }      //end of if (device.address...
-  
 });     //end of noble.on   
 
 //setInterval the function getSensorData is called (in milliseconds)
@@ -147,15 +155,15 @@ var updates = {};
 sense.clear();
 
 console.log("\n");
-/*
-function getSensorData(){
+
+function getSensorData(temperature){
     
     //get all sensor data
     var hatData = IMU.getValueSync();
 
     //get temperature
-    var temperature = hatData.temperature;
-    console.log("Temperature: " + temperature); 
+    //var temperature = hatData.temperature;
+    //console.log("Temperature: " + temperature); 
 
     //get pressure (thought we needed this, but we didn't)
     //var pressure = data.pressure;
@@ -168,8 +176,8 @@ function getSensorData(){
 	console.log("data gathered, uploading to database...");
 	uploadSensorData(temperature, humidity);
 }
-*/
-/*
+
+
 function uploadSensorData(temperature, humidity){
 
 	//edit updates variable to read in values
@@ -179,25 +187,23 @@ function uploadSensorData(temperature, humidity){
 	//update database
     database.ref().update(updates);
 
-        database.ref('/Temperature').set(temperature);
+    //database.ref('/Temperature').set(temperature);
 	console.log("data uploaded successfully\n");
 }
-*/
-/*
+
 // function is called when Interval changes
 function updateInterval(snapshot){
-	if(snapshot.val() != storedInterval){
-		var d = parseInt(snapshot.val());
-		if(!(d < 10 && d > 1)) // valid values are from 1 - 10, so if it goes invalid, just use the last interval
+	if(connected){	
+		var interval = snapshot.val();
+		console.log("Interval: %d", snapshot.val());
+		if(interval < 11 && interval > 0) // valid values are from 1 - 10, so if it goes invalid, just use the last interval
 		{
-			d = storedInterval;
-		}
 		//.once reads the value one time instead of everytime the value is changed
-		database.ref().child('/').once('value', 
-			function(d){
-				console.log("Changing the interval to %d", d);
-				
-				var inStr = d.toString().trim();
+		
+		database.ref().child('/Interval').once('value', 
+			function(data){
+				console.log("Changing the interval to %d", data.val());
+				var inStr = data.val().toString().trim();
 				
 				//Can only send 20 bytes in a Bluetooth LE packet
 				//so truncate string if it is too long
@@ -205,22 +211,19 @@ function updateInterval(snapshot){
 				{
 					inStr = inStr.slice(0, 19);
 				}
-
 				uartTx.write(new Buffer(inStr));
-
-				console.log("Sent: " + inStr);
-
-				//this code would set update_light to false again which was used when testing
-				//console.log("setting update_light to false...");
-				//updates['/update_light'] = false;
-				//database.ref().update(updates);
-				//console.log("done\n");
-			}
-		);
+      			console.log("Sent: " + inStr);
+			});
+		}	
+		else{
+			console.log("Interval needs to be a int from 1-10");
+		}
+	}
+	else{
+		console.log("Waiting to bluetooth connection...");
 	}
 }
-*/
-/*
+
 //function is called when Update_Light changes
 function updateLight(snapshot){
 	if(snapshot.val() == true){
@@ -249,4 +252,4 @@ function updateLight(snapshot){
 	}
 }
 
-*/
+
